@@ -1,9 +1,21 @@
 import { createClient } from "@/lib/supabase/server";
 
-export const revalidate = 30; // keep the masthead feeling live without hitting the DB on every request
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const supabase = createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  let displayName: string | null = null;
+  if (user) {
+    const { data: me } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .maybeSingle();
+    displayName = me?.display_name ?? user.email ?? "Writer";
+  }
 
   const { data: leadPost } = await supabase
     .from("posts")
@@ -19,7 +31,20 @@ export default async function HomePage() {
 
   return (
     <main className="max-w-[1080px] mx-auto px-6">
-      <header className="border-b-[3px] border-navy pt-7 pb-4">
+      <div className="flex justify-end items-center gap-3 pt-4 font-sans text-sm">
+        {user ? (
+          <>
+            <span className="text-inkSoft">Signed in as {displayName}</span>
+            <form action="/auth/signout" method="post">
+              <button type="submit" className="underline">Log out</button>
+            </form>
+          </>
+        ) : (
+          <a href="/login" className="underline">Log in / Sign up</a>
+        )}
+      </div>
+
+      <header className="border-b-[3px] border-navy pt-3 pb-4">
         <div className="flex justify-between text-xs font-sans text-inkSoft mb-3">
           <span>
             <span className="text-emerald-dark font-semibold">● Live edition</span> ·{" "}
