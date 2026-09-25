@@ -36,7 +36,7 @@ const { data: leadPost, error: leadError } = await supabase
 
   return (
     <main className="max-w-[1080px] mx-auto px-6">
-      <pre style<pre style={{ fontSize: 10, background: "#eee", padding: 10, overflow: "auto" }}>{JSON.stringify({ leadPost, morePosts, leadError }, null, 2)}</pre>
+     <pre style={{ fontSize: 10, background: "#eee", padding: 10, overflow: "auto" }}>{JSON.stringify({ leadPost, morePosts, leadError }, null, 2)}</pre>
       <div className="flex justify-end items-center gap-3 pt-4 font-sans text-sm">
         {user ? (
           <>
