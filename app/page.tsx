@@ -24,6 +24,12 @@ export default async function HomePage() {
     .order("published_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+  const { data: morePosts } = await supabase
+    .from("posts")
+    .select("id, title, body, published_at, profiles(display_name, handle)")
+    .eq("status", "published")
+    .order("published_at", { ascending: false })
+    .range(leadPost ? 1 : 0, 10);
 
   const { count: writerCount } = await supabase
     .from("profiles")
@@ -78,6 +84,25 @@ export default async function HomePage() {
           </p>
         )}
       </section>
+      {morePosts && morePosts.length > 0 && (
+          <section className="py-9 border-t-[1px] border-inkSoft/20">
+            <div className="flex flex-col gap-8">
+              {morePosts.map((post) => (
+                <a key={post.id} href={`/post/${post.id}`} className="block">
+                  <h3 className="font-display font-semibold text-2xl mb-2">
+                    {post.title}
+                  </h3>
+                  <p className="font-sans text-sm text-inkSoft mb-2">
+                    By {(post.profiles as any)?.display_name ?? "A Chronicle writer"}
+                  </p>
+                  <p className="font-sans text-inkSoft">
+                    {post.body.slice(0, 180)}…
+                  </p>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
     </main>
   );
 }
