@@ -16,16 +16,16 @@ export default async function HomePage() {
       .maybeSingle();
     displayName = me?.display_name ?? user.email ?? "Writer";
   }
-const { data: leadPost, error: leadError } = await supabase
+const { data: leadPost } = await supabase
     .from("posts")
-    .select("id, title, body, published_at, profiles(display_name, handle)")
+    .select("id, title, body, published_at, profiles!posts_author_id_fkey(display_name, handle)")
     .eq("status", "published")
     .order("published_at", { ascending: false })
     .limit(1)
     .maybeSingle();
   const { data: morePosts } = await supabase
     .from("posts")
-    .select("id, title, body, published_at, profiles(display_name, handle)")
+    .select("id, title, body, published_at, profiles!posts_author_id_fkey(display_name, handle)")
     .eq("status", "published")
     .order("published_at", { ascending: false })
     .range(leadPost ? 1 : 0, 10);
@@ -36,7 +36,7 @@ const { data: leadPost, error: leadError } = await supabase
 
   return (
     <main className="max-w-[1080px] mx-auto px-6">
-     <pre style={{ fontSize: 10, background: "#eee", padding: 10, overflow: "auto" }}>{JSON.stringify({ leadPost, morePosts, leadError }, null, 2)}</pre>
+    
       <div className="flex justify-end items-center gap-3 pt-4 font-sans text-sm">
         {user ? (
           <>
