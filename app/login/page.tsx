@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [handle, setHandle] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -20,20 +21,52 @@ export default function LoginPage() {
     setBusy(true);
     setError("");
 
-    const result =
-      mode === "signup"
-        ? await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-              data: {
-                display_name: displayName.trim(),
-                handle: handle.trim().toLowerCase().replace(/[^a-z0-9_]/g, ""),
-              },
-            },
-          })
-        : await supabase.auth.signInWithPassword({ email, password });
+    if (mode === "signup") {
+      const code = inviteCode.trim().toUpperCase();
 
+      const { data: invite, error: inviteError } = await supabase
+        .from("invites")
+        .select("id, code, used_by")
+        .eq("code", code)
+        .maybeSingle();
+
+      if (inviteError || !invite || invite.used_by) {
+        setBusy(false);
+        setError("That invite code is invalid or already used.");
+        return;
+      }
+
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            display_name: displayName.trim(),
+            handle: handle.trim().toLowerCase().replace(/[^a-z0-9_]/g, ""),
+          },
+        },
+      });
+
+      setBusy(false);
+
+      if (signUpError) {
+        setError(signUpError.message);
+        return;
+      }
+
+      if (signUpData.user) {
+        await supabase
+          .from("invites")
+          .update({ used_by: signUpData.user.id, used_at: new Date().toISOString() })
+          .eq("id", invite.id);
+      }
+
+      router.push("/");
+      router.refresh();
+      return;
+    }
+
+    const result = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
 
     if (result.error) {
@@ -56,6 +89,8 @@ export default function LoginPage() {
       <form onSubmit={submit} className="space-y-4">
         {mode === "signup" && (
           <>
+            <input className={input} placeholder="Invite code" value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value)} required />
             <input className={input} placeholder="Your name" value={displayName}
               onChange={(e) => setDisplayName(e.target.value)} required />
             <input className={input} placeholder="Handle (e.g. jane)" value={handle}
@@ -81,4 +116,4 @@ export default function LoginPage() {
       </button>
     </main>
   );
-      }
+}
