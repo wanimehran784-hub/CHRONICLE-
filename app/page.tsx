@@ -16,7 +16,7 @@ export default async function HomePage() {
       .maybeSingle();
     displayName = me?.display_name ?? user.email ?? "Writer";
   }
-const { data: leadPost } = await supabase
+  const { data: leadPost } = await supabase
     .from("posts")
     .select("id, title, body, published_at, profiles!posts_author_id_fkey(display_name, handle)")
     .eq("status", "published")
@@ -36,11 +36,9 @@ const { data: leadPost } = await supabase
 
   return (
     <main className="max-w-[1080px] mx-auto px-6">
-    
+
       <div className="flex justify-end items-center gap-3 pt-4 font-sans text-sm">
-        40:       <div className="flex justify-end items-center gap-3 pt-4 font-sans text-sm">
-41:         <a href="/feed" className="underline">Feed</a>
-42:         {user ? (
+        <a href="/feed" className="underline">Feed</a>
         {user ? (
           <>
             <span className="text-inkSoft">Signed in as {displayName}</span>
