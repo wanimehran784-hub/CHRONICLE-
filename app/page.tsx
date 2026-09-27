@@ -38,6 +38,9 @@ const { data: leadPost } = await supabase
     <main className="max-w-[1080px] mx-auto px-6">
     
       <div className="flex justify-end items-center gap-3 pt-4 font-sans text-sm">
+        40:       <div className="flex justify-end items-center gap-3 pt-4 font-sans text-sm">
+41:         <a href="/feed" className="underline">Feed</a>
+42:         {user ? (
         {user ? (
           <>
             <span className="text-inkSoft">Signed in as {displayName}</span>
