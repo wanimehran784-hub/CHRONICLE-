@@ -13,7 +13,7 @@ export default async function FeedPage() {
       body,
       cover_image_url,
       published_at,
-      author:profiles (
+      author:profiles!posts_author_id_fkey ( 
         handle,
         display_name,
         avatar_url
