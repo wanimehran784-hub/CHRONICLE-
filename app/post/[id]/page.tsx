@@ -36,4 +36,36 @@ export default async function PostPage({
     .eq("post_id", post.id)
     .order("created_at", { ascending: true });
 
-  const authorIds = [...new Set((c
+  const authorIds = [...new Set((comments ?? []).map((c) => c.author_id))];
+  const { data: commentAuthors } = authorIds.length
+    ? await supabase
+        .from("profiles")
+        .select("id, display_name, handle")
+        .in("id", authorIds)
+    : { data: [] };
+
+  const authorMap = new Map(
+    (commentAuthors ?? []).map((a) => [a.id, a])
+  );
+
+  const date = new Date(post.published_at || post.created_at).toLocaleDateString(
+    "en-US",
+    { year: "numeric", month: "long", day: "numeric" }
+  );
+
+  return (
+    <main style={{ maxWidth: 720, margin: "0 auto", padding: "2rem 1.25rem" }}>
+      <h1
+        style={{
+          fontSize: "2rem",
+          fontWeight: 700,
+          color: "#0F172A",
+          marginBottom: "0.5rem",
+          lineHeight: 1.25,
+        }}
+      >
+        {post.title}
+      </h1>
+
+      <p style={{ color: "#64748B", marginBottom: "2rem", fontSize: "0.95rem" }}>
+        By {author?.dis
