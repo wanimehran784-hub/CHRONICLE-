@@ -1,119 +1,74 @@
-"use client";
+async function submit(e: React.FormEvent) {
+  e.preventDefault();
+  setBusy(true);
+  setError("");
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+  if (mode === "signup") {
+    const code = inviteCode.trim().toUpperCase();
 
-export default function LoginPage() {
-  const router = useRouter();
-  const supabase = createClient();
-  const [mode, setMode] = useState<"login" | "signup">("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [handle, setHandle] = useState("");
-  const [inviteCode, setInviteCode] = useState("");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
+    const { data: valid, error: checkError } = await supabase.rpc(
+      "check_invite",
+      { p_code: code }
+    );
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setError("");
+    if (checkError || !valid) {
+      setBusy(false);
+      setError("That invite code is invalid or already used.");
+      return;
+    }
 
-    if (mode === "signup") {
-      const code = inviteCode.trim().toUpperCase();
-
-      const { data: invite, error: inviteError } = await supabase
-        .from("invites")
-        .select("id, code, used_by")
-        .eq("code", code)
-        .maybeSingle();
-
-      if (inviteError || !invite || invite.used_by) {
-        setBusy(false);
-        setError("That invite code is invalid or already used.");
-        return;
-      }
-
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+    const { data: signUpData, error: signUpError } =
+      await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             display_name: displayName.trim(),
-            handle: handle.trim().toLowerCase().replace(/[^a-z0-9_]/g, ""),
+            handle: handle
+              .trim()
+              .toLowerCase()
+              .replace(/[^a-z0-9_]/g, ""),
           },
         },
       });
 
+    if (signUpError) {
       setBusy(false);
-
-      if (signUpError) {
-        setError(signUpError.message);
-        return;
-      }
-
-      if (signUpData.user) {
-        await supabase
-          .from("invites")
-          .update({ used_by: signUpData.user.id, used_at: new Date().toISOString() })
-          .eq("id", invite.id);
-      }
-
-      router.push("/");
-      router.refresh();
+      setError(signUpError.message);
       return;
     }
 
-    const result = await supabase.auth.signInWithPassword({ email, password });
+    if (signUpData.session) {
+      await supabase.rpc("redeem_invite", { p_code: code });
+    } else {
+      try {
+        localStorage.setItem("pending_invite", code);
+      } catch {}
+    }
+
     setBusy(false);
-
-    if (result.error) {
-      setError(result.error.message);
-      return;
-    }
     router.push("/");
     router.refresh();
+    return;
   }
 
-  const input = "w-full border border-navy/30 rounded px-3 py-2 font-sans bg-white";
+  const result = await supabase.auth.signInWithPassword({ email, password });
 
-  return (
-    <main className="max-w-[420px] mx-auto px-6 py-16">
-      <h1 className="font-display font-semibold text-4xl text-center mb-2">Chronicle</h1>
-      <p className="text-center font-sans text-inkSoft mb-8">
-        {mode === "login" ? "Welcome back." : "Start your Chronicle."}
-      </p>
+  if (result.error) {
+    setBusy(false);
+    setError(result.error.message);
+    return;
+  }
 
-      <form onSubmit={submit} className="space-y-4">
-        {mode === "signup" && (
-          <>
-            <input className={input} placeholder="Invite code" value={inviteCode}
-              onChange={(e) => setInviteCode(e.target.value)} required />
-            <input className={input} placeholder="Your name" value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)} required />
-            <input className={input} placeholder="Handle (e.g. jane)" value={handle}
-              onChange={(e) => setHandle(e.target.value)} required />
-          </>
-        )}
-        <input className={input} type="email" placeholder="Email" value={email}
-          onChange={(e) => setEmail(e.target.value)} required />
-        <input className={input} type="password" placeholder="Password (6+ characters)" value={password}
-          onChange={(e) => setPassword(e.target.value)} minLength={6} required />
+  try {
+    const pending = localStorage.getItem("pending_invite");
+    if (pending) {
+      await supabase.rpc("redeem_invite", { p_code: pending });
+      localStorage.removeItem("pending_invite");
+    }
+  } catch {}
 
-        {error && <p className="text-red-600 font-sans text-sm">{error}</p>}
-
-        <button type="submit" disabled={busy}
-          className="w-full bg-navy text-white font-sans font-semibold rounded py-2 disabled:opacity-60">
-          {busy ? "Please wait…" : mode === "login" ? "Log in" : "Create account"}
-        </button>
-      </form>
-
-      <button type="button" className="block mx-auto mt-6 font-sans text-sm text-inkSoft underline"
-        onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); }}>
-        {mode === "login" ? "New here? Create an account" : "Already have an account? Log in"}
-      </button>
-    </main>
-  );
+  setBusy(false);
+  router.push("/");
+  router.refresh();
 }
