@@ -4,68 +4,121 @@ import CommentForm from "./comment-form";
 
 export default async function PostPage({
   params,
-}: {
-  params: { id: string };
-}) {
-  const supabase = createClient();
+  }: {
+    params: { id: string };
+    }) {
+      const supabase = createClient();
 
-  const { data: post } = await supabase
-    .from("posts")
-    .select("id, title, body, created_at, published_at, author_id")
-    .eq("id", params.id)
-    .eq("status", "published")
-    .single();
+        const { data: post } = await supabase
+            .from("posts")
+                .select("id, title, body, created_at, published_at, author_id")
+                    .eq("id", params.id)
+                        .eq("status", "published")
+                            .single();
 
-  if (!post) {
-    notFound();
-  }
+                              if (!post) {
+                                  notFound();
+                                    }
 
-  const { data: author } = await supabase
-    .from("profiles")
-    .select("display_name, handle")
-    .eq("id", post.author_id)
-    .single();
+                                      const { data: author } = await supabase
+                                          .from("profiles")
+                                              .select("display_name, handle")
+                                                  .eq("id", post.author_id)
+                                                      .single();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+                                                        const {
+                                                            data: { user },
+                                                              } = await supabase.auth.getUser();
 
-  const { data: comments } = await supabase
-    .from("comments")
-    .select("id, body, created_at, author_id")
-    .eq("post_id", post.id)
-    .order("created_at", { ascending: true });
+                                                                const { data: comments } = await supabase
+                                                                    .from("comments")
+                                                                        .select("id, body, created_at, author_id")
+                                                                            .eq("post_id", post.id)
+                                                                                .order("created_at", { ascending: true });
 
-  const authorIds = [...new Set((comments ?? []).map((c) => c.author_id))];
-  const { data: commentAuthors } = authorIds.length
-    ? await supabase
-        .from("profiles")
-        .select("id, display_name, handle")
-        .in("id", authorIds)
-    : { data: [] };
+                                                                                  const rawAuthorIds = (comments ?? []).map((c) => c.author_id);
+                                                                                    const authorIds = rawAuthorIds.filter(
+                                                                                        (id, index) => rawAuthorIds.indexOf(id) === index
+                                                                                          );
 
-  const authorMap = new Map(
-    (commentAuthors ?? []).map((a) => [a.id, a])
-  );
+                                                                                            const { data: commentAuthors } = authorIds.length
+                                                                                                ? await supabase
+                                                                                                        .from("profiles")
+                                                                                                                .select("id, display_name, handle")
+                                                                                                                        .in("id", authorIds)
+                                                                                                                            : { data: [] };
 
-  const date = new Date(post.published_at || post.created_at).toLocaleDateString(
-    "en-US",
-    { year: "numeric", month: "long", day: "numeric" }
-  );
+                                                                                                                              const authorMap = new Map(
+                                                                                                                                  (commentAuthors ?? []).map((a) => [a.id, a])
+                                                                                                                                    );
 
-  return (
-    <main style={{ maxWidth: 720, margin: "0 auto", padding: "2rem 1.25rem" }}>
-      <h1
-        style={{
-          fontSize: "2rem",
-          fontWeight: 700,
-          color: "#0F172A",
-          marginBottom: "0.5rem",
-          lineHeight: 1.25,
-        }}
-      >
-        {post.title}
-      </h1>
+                                                                                                                                      const date = new Date(post.published_at || post.created_at).toLocaleDateString(
+                                                                                                                                          "en-US",
+                                                                                                                                              { year: "numeric", month: "long", day: "numeric" }
+                                                                                                                                                );
 
-      <p style={{ color: "#64748B", marginBottom: "2rem", fontSize: "0.95rem" }}>
-        By {author?.dis
+                                                                                                                                                  return (
+                                                                                                                                                      <main style={{ maxWidth: 720, margin: "0 auto", padding: "2rem 1.25rem" }}>
+                                                                                                                                                            <h1
+                                                                                                                                                                    style={{
+                                                                                                                                                                              fontSize: "2rem",
+                                                                                                                                                                                        fontWeight: 700,
+                                                                                                                                                                                                  color: "#0F172A",
+                                                                                                                                                                                                            marginBottom: "0.5rem",
+                                                                                                                                                                                                                      lineHeight: 1.25,
+                                                                                                                                                                                                                              }}
+                                                                                                                                                                                                                                    >
+                                                                                                                                                                                                                                            {post.title}
+                                                                                                                                                                                                                                                  </h1>
+
+                                                                                                                                                                                                                                                        <p style={{ color: "#64748B", marginBottom: "2rem", fontSize: "0.95rem" }}>
+                                                                                                                                                                                                                                                                By {author?.display_name || "Unknown writer"}
+                                                                                                                                                                                                                                                                        {author?.handle ? ` (@${author.handle})` : ""} · {date}
+                                                                                                                                                                                                                                                                              </p>
+
+                                                                                                                                                                                                                                                                                    <article
+                                                                                                                                                                                                                                                                                            style={{
+                                                                                                                                                                                                                                                                                                      fontSize: "1.1rem",
+                                                                                                                                                                                                                                                                                                                lineHeight: 1.8,
+                                                                                                                                                                                                                                                                                                                          color: "#1E293B",
+                                                                                                                                                                                                                                                                                                                                    whiteSpace: "pre-wrap",
+                                                                                                                                                                                                                                                                                                                                            }}
+                                                                                                                                                                                                                                                                                                                                                  >
+                                                                                                                                                                                                                                                                                                                                                          {post.body}
+                                                                                                                                                                                                                                                                                                                                                                </article>
+
+                                                                                                                                                                                                                                                                                                                                                                      <section style={{ marginTop: "3rem", borderTop: "1px solid #E2E8F0", paddingTop: "2rem" }}>
+                                                                                                                                                                                                                                                                                                                                                                              <h2 style={{ fontSize: "1.25rem", fontWeight: 700, color: "#0F172A", marginBottom: "1.25rem" }}>
+                                                                                                                                                                                                                                                                                                                                                                                        Comments {comments && comments.length > 0 ? `(${comments.length})` : ""}
+                                                                                                                                                                                                                                                                                                                                                                                                </h2>
+
+                                                                                                                                                                                                                                                                                                                                                                                                        <CommentForm postId={post.id} isLoggedIn={!!user} />
+
+                                                                                                                                                                                                                                                                                                                                                                                                                <div style={{ marginTop: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                                                                                                                                                                                                                                                                                                                                                                                                                          {(!comments || comments.length === 0) && (
+                                                                                                                                                                                                                                                                                                                                                                                                                                      <p style={{ color: "#94A3B8", fontSize: "0.9rem" }}>No comments yet.</p>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                )}
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                          {comments?.map((comment) => {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                      const commentAuthor = authorMap.get(comment.author_id);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  return (
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <div key={comment.id} style={{ borderBottom: "1px solid #F1F5F9", paddingBottom: "1rem" }}>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <p style={{ fontSize: "0.85rem", color: "#64748B", marginBottom: "0.35rem" }}>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  <strong style={{ color: "#0F172A" }}>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      {commentAuthor?.display_name || commentAuthor?.handle || "A writer"}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </strong>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          {" · "}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            {new Date(comment.created_at).toLocaleDateString("en-US", {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                month: "short",
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    day: "numeric",
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      })}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      </p>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      <p style={{ color: "#1E293B", lineHeight: 1.6 }}>{comment.body}</p>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    </div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                );
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          })}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  </div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </section>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            </main>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              );
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              }
